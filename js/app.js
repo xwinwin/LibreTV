@@ -10,9 +10,43 @@ let currentEpisodes = [];
 let currentVideoTitle = '';
 // 全局变量用于倒序状态
 let episodesReversed = false;
+// 配置文件名
+let configFileName = '';
 
 // 页面初始化
 document.addEventListener('DOMContentLoaded', function () {
+    if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.name) {
+        configFileName = `${SITE_CONFIG.name}-Settings`;
+
+        // 选择 meta description 元素
+        if (SITE_CONFIG.description) {
+            var metaDesc = document.querySelector('meta[name="description"]');
+            // 修改 content 属性
+            if (metaDesc) {
+                metaDesc.setAttribute('content', `${SITE_CONFIG.name} ${SITE_CONFIG.description}}`);
+            }
+        }
+
+        // 选择 meta keywords 元素
+        if (SITE_CONFIG.keywords) {
+            var metaKeywords = document.querySelector('meta[name="keywords"]');
+            // 修改 content 属性
+            if (metaKeywords) {
+                metaKeywords.setAttribute('content', `${SITE_CONFIG.keywords},${SITE_CONFIG.name}`);
+            }
+        }
+
+        // 选择 meta author 元素
+        var metaAuthor = document.querySelector('meta[name="author"]');
+        if (metaAuthor) {
+            metaAuthor.setAttribute('content', `${SITE_CONFIG.name} Team`);
+        }
+    } else {
+        configFileName = 'LibreTV-Settings';
+    }
+
+    console.log(`配置文件名: ${configFileName}`);
+
     // 初始化API复选框
     initAPICheckboxes();
 
@@ -59,6 +93,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始检查成人API选中状态
     setTimeout(checkAdultAPIsSelected, 100);
+
+    // JSON-LD 结构化数据动态创建
+    if (typeof SITE_CONFIG !== 'undefined') {
+        var jsonLd = {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": SITE_CONFIG.name,
+            "url": SITE_CONFIG.url,
+            "description": SITE_CONFIG.desc,
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": SITE_CONFIG.url + "/?s={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }
+        };
+        var script = document.createElement('script');
+        script.type = 'application/ld+json';
+        script.textContent = JSON.stringify(jsonLd, null, 2);
+        document.head.appendChild(script);
+    }
 });
 
 // 初始化API复选框
@@ -594,13 +648,23 @@ function resetSearchArea() {
 
     // 重置URL为主页
     try {
-        window.history.pushState(
-            {},
-            `LibreTV - 免费在线视频搜索与观看平台`,
-            `/`
-        );
-        // 更新页面标题
-        document.title = `LibreTV - 免费在线视频搜索与观看平台`;
+        if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.name && SITE_CONFIG.desc) {
+            window.history.pushState(
+                {},
+                `${SITE_CONFIG.name} - ${SITE_CONFIG.desc}`,
+                `/`
+            );
+            // 更新页面标题
+            document.title = `${SITE_CONFIG.name} - ${SITE_CONFIG.desc}`;
+        } else {
+            window.history.pushState(
+                {},
+                `LibreTV - 免费在线视频搜索与观看平台`,
+                `/`
+            );
+            // 更新页面标题
+            document.title = `LibreTV - 免费在线视频搜索与观看平台`;
+        }
     } catch (e) {
         console.error('更新浏览器历史失败:', e);
     }
@@ -708,13 +772,25 @@ async function search() {
             // 使用URI编码确保特殊字符能够正确显示
             const encodedQuery = encodeURIComponent(query);
             // 使用HTML5 History API更新URL，不刷新页面
-            window.history.pushState(
-                { search: query },
-                `搜索: ${query} - LibreTV`,
-                `/s=${encodedQuery}`
-            );
-            // 更新页面标题
-            document.title = `搜索: ${query} - LibreTV`;
+            if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.name) {
+                window.history.pushState(
+                    { search: query },
+                    `搜索: ${query} - ${SITE_CONFIG.name}`,
+                    `/s=${encodedQuery}`
+                );
+                // 更新页面标题
+                document.title = `搜索: ${query} - ${SITE_CONFIG.name}`;
+            }
+            else {
+                // 如果没有SITE_CONFIG，使用默认标题
+                window.history.pushState(
+                    { search: query },
+                    `搜索: ${query} - LibreTV`,
+                    `/s=${encodedQuery}`
+                );
+                // 更新页面标题
+                document.title = `搜索: ${query} - LibreTV`;
+            }
         } catch (e) {
             console.error('更新浏览器历史失败:', e);
             // 如果更新URL失败，继续执行搜索
@@ -1219,7 +1295,7 @@ async function importConfigFromUrl() {
             }
 
             const config = await response.json();
-            if (config.name !== 'LibreTV-Settings') throw '配置文件格式不正确';
+            if (config.name !== configFileName) throw '配置文件格式不正确';
 
             // 验证哈希
             const dataHash = await sha256(JSON.stringify(config.data));
@@ -1271,7 +1347,7 @@ async function importConfig() {
 
             // 解析并验证配置
             const config = JSON.parse(content);
-            if (config.name !== 'LibreTV-Settings') throw '配置文件格式不正确';
+            if (config.name !== configFileName) throw '配置文件格式不正确';
 
             // 验证哈希
             const dataHash = await sha256(JSON.stringify(config.data));
@@ -1328,14 +1404,14 @@ async function exportConfig() {
     }
 
     const times = Date.now().toString();
-    config['name'] = 'LibreTV-Settings';  // 配置文件名，用于校验
+    config['name'] = configFileName;      // 配置文件名，用于校验
     config['time'] = times;               // 配置文件生成时间
     config['cfgVer'] = '1.0.0';           // 配置文件版本
     config['data'] = items;               // 配置文件数据
     config['hash'] = await sha256(JSON.stringify(config['data']));  // 计算数据的哈希值，用于校验
 
     // 将配置数据保存为 JSON 文件
-    saveStringAsFile(JSON.stringify(config), 'LibreTV-Settings_' + times + '.json');
+    saveStringAsFile(JSON.stringify(config), `${configFileName}_` + times + '.json');
 }
 
 // 将字符串保存为文件

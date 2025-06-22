@@ -175,13 +175,23 @@ function fillAndSearch(title) {
             // 使用URI编码确保特殊字符能够正确显示
             const encodedQuery = encodeURIComponent(safeTitle);
             // 使用HTML5 History API更新URL，不刷新页面
-            window.history.pushState(
-                { search: safeTitle }, 
-                `搜索: ${safeTitle} - LibreTV`, 
-                `/s=${encodedQuery}`
-            );
-            // 更新页面标题
-            document.title = `搜索: ${safeTitle} - LibreTV`;
+            if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.name) {
+                window.history.pushState(
+                    { search: safeTitle },
+                    `搜索: ${safeTitle} - ${SITE_CONFIG.name}`,
+                    `/s=${encodedQuery}`
+                );
+                // 更新页面标题
+                document.title = `搜索: ${safeTitle} - ${SITE_CONFIG.name}`;
+            } else {
+                window.history.pushState(
+                    { search: safeTitle },
+                    `搜索: ${safeTitle} - LibreTV`,
+                    `/s=${encodedQuery}`
+                );
+                // 更新页面标题
+                document.title = `搜索: ${safeTitle} - LibreTV`;
+            }
         } catch (e) {
             console.error('更新浏览器历史失败:', e);
         }
@@ -235,13 +245,23 @@ async function fillAndSearchWithDouban(title) {
             // 使用URI编码确保特殊字符能够正确显示
             const encodedQuery = encodeURIComponent(safeTitle);
             // 使用HTML5 History API更新URL，不刷新页面
-            window.history.pushState(
-                { search: safeTitle }, 
-                `搜索: ${safeTitle} - LibreTV`, 
-                `/s=${encodedQuery}`
-            );
-            // 更新页面标题
-            document.title = `搜索: ${safeTitle} - LibreTV`;
+            if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.name) {
+                window.history.pushState(
+                    { search: safeTitle },
+                    `搜索: ${safeTitle} - ${SITE_CONFIG.name}`,
+                    `/s=${encodedQuery}`
+                );
+                // 更新页面标题
+                document.title = `搜索: ${safeTitle} - ${SITE_CONFIG.name}`;
+            } else {
+                window.history.pushState(
+                    { search: safeTitle },
+                    `搜索: ${safeTitle} - LibreTV`,
+                    `/s=${encodedQuery}`
+                );
+                // 更新页面标题
+                document.title = `搜索: ${safeTitle} - LibreTV`;
+            }
         } catch (e) {
             console.error('更新浏览器历史失败:', e);
         }

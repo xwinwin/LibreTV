@@ -1,10 +1,18 @@
 // 获取当前URL的参数，并将它们传递给player.html
-window.onload = function() {
+document.addEventListener('DOMContentLoaded', function() {
+
     // 获取当前URL的查询参数
     const currentParams = new URLSearchParams(window.location.search);
     
     // 创建player.html的URL对象
     const playerUrlObj = new URL("player.html", window.location.origin);
+
+    if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.name) {
+        var siteLogo = document.getElementById('site-name');
+        if (siteLogo) {
+            siteLogo.textContent = SITE_CONFIG.name;
+        }
+    }
     
     // 更新状态文本
     const statusElement = document.getElementById('redirect-status');
@@ -91,4 +99,4 @@ window.onload = function() {
         clearInterval(statusInterval);
         window.location.href = finalPlayerUrl;
     }, 2800); // 稍微早于meta refresh的时间，确保我们的JS控制重定向
-};
+});

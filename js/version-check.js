@@ -36,10 +36,19 @@ async function checkForUpdates() {
         
         // 获取最新版本
         let latestVersion;
-        const VERSION_URL = {
-            PROXY: 'https://raw.ihtw.moe/raw.githubusercontent.com/LibreSpark/LibreTV/main/VERSION.txt',
-            DIRECT: 'https://raw.githubusercontent.com/LibreSpark/LibreTV/main/VERSION.txt'
-        };
+        let VERSION_URL;
+        if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.updateurl) {
+            const updateUrlNoProtocol = SITE_CONFIG.updateurl.replace(/^https:\/\//, '');
+            VERSION_URL = {
+                PROXY: 'https://raw.ihtw.moe/' + updateUrlNoProtocol,
+                DIRECT: SITE_CONFIG.updateurl
+            };
+        } else {
+            VERSION_URL = {
+                PROXY: 'https://raw.ihtw.moe/raw.githubusercontent.com/LibreSpark/LibreTV/main/VERSION.txt',
+                DIRECT: 'https://raw.githubusercontent.com/LibreSpark/LibreTV/main/VERSION.txt'
+            };
+        }
         const FETCH_TIMEOUT = 1500;
         
         try {
@@ -147,9 +156,15 @@ function addVersionInfoToFooter() {
             setTimeout(() => {
                 const updateBtn = versionElement.querySelector('span');
                 if (updateBtn) {
-                    updateBtn.addEventListener('click', () => {
-                        window.open('https://github.com/LibreSpark/LibreTV', '_blank');
-                    });
+                    if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.repository) {
+                        updateBtn.addEventListener('click', () => {
+                            window.open(SITE_CONFIG.repository, '_blank');
+                        })
+                    } else {
+                        updateBtn.addEventListener('click', () => {
+                            window.open('https://github.com/LibreSpark/LibreTV', '_blank');
+                        });
+                    }
                 }
             }, 100);
         } else {

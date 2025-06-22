@@ -795,6 +795,48 @@ document.addEventListener('DOMContentLoaded', function() {
             historyPanel.classList.remove('show');
         }
     });
+
+    if (typeof SITE_CONFIG !== 'undefined') {
+        if (SITE_CONFIG.name) {
+            if (SITE_CONFIG.desc) {
+                document.title = SITE_CONFIG.name + ' - ' + SITE_CONFIG.desc;
+            }
+
+            var siteLogo = document.getElementById('siteLogo');
+            if (siteLogo) {
+                siteLogo.textContent = SITE_CONFIG.name;
+            }
+
+            var siteFooter = document.getElementById('siteFooter');
+            if (siteFooter) {
+                siteFooter.textContent = SITE_CONFIG.name;
+            }
+
+            if (SITE_CONFIG.slogan) {
+                var siteNameAndSlogan = document.getElementById('siteNameAndSlogan');
+                if (siteNameAndSlogan) {
+                    siteNameAndSlogan.textContent = SITE_CONFIG.name + ' - ' + SITE_CONFIG.slogan;
+                }
+            }
+
+            var siteWelcome = document.getElementById('siteWelcome');
+            if (siteWelcome) {
+                siteWelcome.textContent = SITE_CONFIG.name;
+            }
+
+            var siteService = document.getElementById('siteService');
+            if (siteService) {
+                siteService.textContent = SITE_CONFIG.name;
+            }
+        }
+
+        if (SITE_CONFIG.slogan) {
+            var siteSlogan = document.getElementById('siteSlogan');
+            if (siteSlogan) {
+                siteSlogan.textContent = SITE_CONFIG.slogan;
+            }
+        }
+    }
 });
 
 // 清除本地存储缓存并刷新页面

@@ -218,7 +218,27 @@ function initializePageContent() {
     }
 
     // 设置页面标题
-    document.title = currentVideoTitle + ' - LibreTV播放器';
+    if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.name) {
+        var siteLogo = document.getElementById('siteLogo');
+        if (siteLogo) {
+            siteLogo.textContent = SITE_CONFIG.name;
+        };
+
+        var siteFooter = document.getElementById('siteFooter');
+        if (siteFooter) {
+            siteFooter.textContent = SITE_CONFIG.name;
+        }
+
+        if (SITE_CONFIG.slogan) {
+            document.getElementById('siteSlogan').textContent = SITE_CONFIG.name + ' - ' + SITE_CONFIG.slogan;
+        }
+
+        document.title = currentVideoTitle + ' - ' + SITE_CONFIG.name
+    } else {
+        document.title = currentVideoTitle + ' - LibreTV';
+    }
+    document.title += ' 播放器';
+
     document.getElementById('videoTitle').textContent = currentVideoTitle;
 
     // 初始化播放器
@@ -656,7 +676,9 @@ function initPlayer(videoUrl) {
 
     // 播放器加载完成后初始隐藏工具栏
     art.on('ready', () => {
-        art.controls.classList.add('art-controls-hide');
+        if (art.controls && art.controls.classList) {
+            art.controls.classList.add('art-controls-hide');
+        }
     });
 
     // 全屏模式处理

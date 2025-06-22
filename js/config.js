@@ -13,9 +13,15 @@ const PASSWORD_CONFIG = {
 
 // 网站信息配置
 const SITE_CONFIG = {
-    name: 'LibreTV',
-    url: 'https://libretv.is-an.org',
-    description: '免费在线视频搜索与观看平台',
+    name: 'RabbitTV',
+    url: 'https://tv.kooboo.dedyn.io',
+    desc: '免费在线视频搜索与观看平台',
+    description: '是一个免费的在线视频搜索平台，无广告、安全，提供来自多个视频源的内容搜索与观看服务，无需注册即可使用。',
+    keywords: '在线视频,免费视频,视频搜索,电影,电视剧,动漫,综艺',
+    slogan: '自由影视，随心所欲',
+    email: 'feedback@email.com',
+    repository: 'https://github.com/xwinwin/LibreTV',
+    updateurl: 'https://raw.githubusercontent.com/xwinwin/LibreTV/rabbittv/VERSION.txt',
     logo: 'image/logo.png',
     version: '1.0.3'
 };
@@ -90,10 +96,10 @@ const API_SITES = {
         api: 'https://api.zuidapi.com/api.php/provide/vod',
         name: '最大资源'
     },
-    yinghua: {
-        api: 'https://m3u8.apiyhzy.com/api.php/provide/vod',
-        name: '樱花资源'
-    },
+    //yinghua: {
+    //    api: 'https://m3u8.apiyhzy.com/api.php/provide/vod',
+    //    name: '樱花资源'
+    //},
     baidu: {
         api: 'https://api.apibdzy.com/api.php/provide/vod',
         name: '百度云资源'
@@ -106,9 +112,25 @@ const API_SITES = {
         api: 'https://wwzy.tv/api.php/provide/vod',
         name: '旺旺短剧'
     },
-    ikun: {
-        api: 'https://ikunzyapi.com/api.php/provide/vod',
-        name: 'iKun资源'
+    //ikun: {
+    //    api: 'https://ikunzyapi.com/api.php/provide/vod',
+    //    name: 'iKun资源'
+    //},
+    wujin: {
+        api: 'https://api.wujinapi.com/api.php/provide/vod',
+        name: '无尽资源',
+    },
+    ckzy: {
+        api: 'https://ckzy.me/api.php/provide/vod',
+        name: 'CK资源',
+    },
+    lzi: {
+        api: ' https://cj.lziapi.com/api.php/provide/vod',
+        name: '量子资源',
+    },
+    sigequan: {
+        api: 'https://pg.fenwe078.cf/api.php/provide/vod',
+        name: '四个圈资源',
     },
     testSource: {
         api: 'https://www.example.com/api.php/provide/vod',

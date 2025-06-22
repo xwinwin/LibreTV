@@ -43,11 +43,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 search();
                 // 更新浏览器历史，不改变URL (保持搜索参数在地址栏)
                 try {
-                    window.history.replaceState(
-                        { search: keyword }, 
-                        `搜索: ${keyword} - LibreTV`, 
-                        window.location.href
-                    );
+                    if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.name) {
+                        window.history.replaceState(
+                            { search: keyword },
+                            `搜索: ${keyword} - ${SITE_CONFIG.name}`,
+                            window.location.href
+                        );
+                    } else {
+                        window.history.replaceState(
+                            { search: keyword },
+                            `搜索: ${keyword} - LibreTV`,
+                            window.location.href
+                        );
+                    }
                 } catch (e) {
                     console.error('更新浏览器历史失败:', e);
                 }
@@ -67,11 +75,19 @@ document.addEventListener('DOMContentLoaded', function() {
             search();
             // 更新URL为规范格式
             try {
-                window.history.replaceState(
-                    { search: searchQuery }, 
-                    `搜索: ${searchQuery} - LibreTV`, 
-                    `/s=${encodeURIComponent(searchQuery)}`
-                );
+                if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.name) {
+                    window.history.replaceState(
+                        { search: searchQuery },
+                        `搜索: ${searchQuery} - ${SITE_CONFIG.name}`,
+                        `/s=${encodeURIComponent(searchQuery)}`
+                    );
+                } else {
+                    window.history.replaceState(
+                        { search: searchQuery },
+                        `搜索: ${searchQuery} - LibreTV`,
+                        `/s=${encodeURIComponent(searchQuery)}`
+                    );
+                }
             } catch (e) {
                 console.error('更新浏览器历史失败:', e);
             }
