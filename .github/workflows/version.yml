@@ -3,12 +3,12 @@ name: Bump version
 on:
   push:
     branches:
-      - main
+      - rabbittv
   workflow_dispatch:
 
 jobs:
   bump-version:
-    if: github.repository == 'LibreSpark/LibreTV'
+    if: github.repository == 'xwinwin/LibreTV'
     runs-on: ubuntu-latest
     env:
       TZ: 'Asia/Shanghai'
@@ -24,7 +24,7 @@ jobs:
         echo $(date +"%Y%m%d%H%M") > VERSION.txt
         git add VERSION.txt
         git commit -m "Auto Update $CURRENT_TIME"
-        git push origin main
+        git push origin rabbittv
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
