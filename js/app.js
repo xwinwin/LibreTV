@@ -45,8 +45,6 @@ document.addEventListener('DOMContentLoaded', function () {
         configFileName = 'LibreTV-Settings';
     }
 
-    console.log(`配置文件名: ${configFileName}`);
-
     // 初始化API复选框
     initAPICheckboxes();
 
