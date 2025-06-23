@@ -22,7 +22,7 @@ const SITE_CONFIG = {
     email: 'feedback@email.com',
     repository: 'https://github.com/xwinwin/LibreTV',
     updateurl: 'https://raw.githubusercontent.com/xwinwin/LibreTV/rabbittv/VERSION.txt',
-    logo: 'image/logo.png',
+    logo: 'favicon.svg',
     version: '1.0.3'
 };
 

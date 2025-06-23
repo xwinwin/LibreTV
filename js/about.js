@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', function() {
             var siteLogoAlt = document.getElementById('siteLogoAlt');
             if (siteLogoAlt) {
                 siteLogoAlt.alt = SITE_CONFIG.name + ' Logo';
+                if (SITE_CONFIG.logo) {
+                    siteLogoAlt.src = SITE_CONFIG.logo;
+                }
             }
 
             var siteAboutText = document.getElementById('siteAboutText');
