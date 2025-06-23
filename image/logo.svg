@@ -1,0 +1,15 @@
+<!-- favicon.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none">
+  <!-- 背景 -->
+  <rect width="24" height="24" fill="#0f1622"/>
+  <!-- 定义线性渐变 -->
+  <defs>
+    <linearGradient id="icon-gradient" x1="0" y1="16" x2="32" y2="16" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00ccff"/>
+      <stop offset="100%" stop-color="#ff3c78"/>
+    </linearGradient>
+  </defs>
+  <!-- 图标路径，使用渐变描边 -->
+  <path stroke="url(#icon-gradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+</svg>

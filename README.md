@@ -1,7 +1,7 @@
 # RabbitTV - 免费在线视频搜索与观看平台
 
 <div align="center">
-  <img src="image/logo.png" alt="RabbitTV Logo" width="120">
+  <img type="image/svg+xml" src="image/logo.svg" alt="RabbitTV Logo" width="120">
   <br>
   <p><strong>自由观影，畅享精彩</strong></p>
 </div>
@@ -12,10 +12,6 @@ RabbitTV 是一个轻量级、免费的在线视频搜索与观看平台，提�
 
 本项目基于 [LibreSpark/LibreTV](https://github.com/LibreSpark/LibreTV) 进行修改。** LibreTV 项目门户**： [libretv.is-an.org](https://libretv.is-an.org)
 
-<details>
-  <summary>点击查看项目截图</summary>
-  <img src="https://github.com/user-attachments/assets/df485345-e83b-4564-adf7-0680be92d3c7" alt="项目截图" style="max-width:600px">
-</details>
 
 ## 🥇 感谢赞助
 
