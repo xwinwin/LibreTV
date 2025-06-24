@@ -14,7 +14,7 @@ const PASSWORD_CONFIG = {
 // 网站信息配置
 const SITE_CONFIG = {
     name: 'RabbitTV',
-    url: 'https://tv.kooboo.dedyn.io',
+    url: 'https://github.com/xwinwin/LibreTV',
     desc: '免费在线视频搜索与观看平台',
     description: '是一个免费的在线视频搜索平台，无广告、安全，提供来自多个视频源的内容搜索与观看服务，无需注册即可使用。',
     keywords: '在线视频,免费视频,视频搜索,电影,电视剧,动漫,综艺',
