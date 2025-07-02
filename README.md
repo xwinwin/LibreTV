@@ -25,6 +25,7 @@ RabbitTV 是一个轻量级、免费的在线视频搜索与观看平台，提�
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/xwinwin/LibreTV)
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/xwinwin/LibreTV)
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/xwinwin/LibreTV)
+[![使用 EdgeOne Pages 部署](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/pages/new?repository-url=https://github.com/xwinwin/LibreTV)
 
 ## ⚠️ 安全与隐私提醒
 
