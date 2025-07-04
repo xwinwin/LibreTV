@@ -588,7 +588,10 @@ function initPlayer(videoUrl) {
     // 实际起作用的是 artplayer 默认行为，它支持自动隐藏工具栏
     // 但有一个 bug： 在副屏全屏时，鼠标移出副屏后不会自动隐藏工具栏
     // 下面进一并重构和修复：
-    let hideTimer;
+    let hideTimer = null;
+
+    // 解决部分手机系统设置了自动熄屏后，播放器全屏时自动熄屏的问题
+    let wakeLock = null;
 
     // 隐藏控制栏
     function hideControls() {
@@ -612,15 +615,60 @@ function initPlayer(videoUrl) {
         }
     }
 
+    // 请求屏幕唤醒锁
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator && !wakeLock) {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        } catch (err) {
+            console.error('请求屏幕唤醒锁失败:', err);
+        }
+    }
+
+    // 解除屏幕唤醒锁
+    async function releaseWakeLock() {
+        if (wakeLock) {
+            try {
+                await wakeLock.release();
+                wakeLock = null;
+            } catch (err) {
+                console.error('释放屏幕唤醒锁失败:', err);
+            }
+        }
+    }
+
+    // 处理页面隐藏事件
+    async function handleVisibilityChange() {
+        if (document.visibilityState === 'hidden') {
+            // 页面隐藏时释放唤醒锁
+            await releaseWakeLock();
+        } else {
+            // 页面显示时请求唤醒锁
+            await requestWakeLock();
+        }
+    }
+
     // 全屏状态切换时注册/移除 mouseout 事件，监听鼠标移出屏幕事件
     // 从而对播放器状态栏进行隐藏倒计时
     function handleFullScreen(isFullScreen, isWeb) {
         if (isFullScreen) {
+            // 添加鼠标移除事件监听
             document.addEventListener('mouseout', handleMouseOut);
+
+            // 全屏请求屏幕唤醒锁
+            requestWakeLock();
+            // 添加页面可见性变化事件监听
+            document.addEventListener('visibilitychange', handleVisibilityChange);
         } else {
-            document.removeEventListener('mouseout', handleMouseOut);
             // 退出全屏时清理计时器
             clearTimeout(hideTimer);
+            // 释放屏幕唤醒锁
+            releaseWakeLock();
+
+            // 移除事件监听
+            document.removeEventListener('mouseout', handleMouseOut);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         }
 
         if (!isWeb) {
