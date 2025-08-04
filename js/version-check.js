@@ -40,13 +40,13 @@ async function checkForUpdates() {
         if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.updateurl) {
             const updateUrlNoProtocol = SITE_CONFIG.updateurl.replace(/^https:\/\//, '');
             VERSION_URL = {
-                PROXY: 'https://raw.ihtw.moe/' + updateUrlNoProtocol,
+                PROXY: 'https://ghfast.top/' + updateUrlNoProtocol,
                 DIRECT: SITE_CONFIG.updateurl
             };
         } else {
             VERSION_URL = {
-                PROXY: 'https://raw.ihtw.moe/raw.githubusercontent.com/LibreSpark/LibreTV/main/VERSION.txt',
-                DIRECT: 'https://raw.githubusercontent.com/LibreSpark/LibreTV/main/VERSION.txt'
+                PROXY: 'https://ghfast.top/raw.githubusercontent.com/xwinwin/LibreTV/main/VERSION.txt',
+                DIRECT: 'https://raw.githubusercontent.com/xwinwin/LibreTV/main/VERSION.txt'
             };
         }
         const FETCH_TIMEOUT = 1500;
