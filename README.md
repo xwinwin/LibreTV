@@ -172,13 +172,6 @@ RabbitTV 仅作为视频搜索工具，不存储、上传或分发任何视频�
 
 本项目开发者不对使用本项目产生的任何后果负责。使用本项目时，您必须遵守当地的法律法规。
 
-## 🤝 衍生项目
-
-它们提供了更多丰富的自定义功能，欢迎体验~
-
-- **[MoonTV](https://github.com/senshinya/MoonTV)**  
-- **[OrionTV](https://github.com/zimplexing/OrionTV)**  
-
 ## 🥇 感谢赞助
 
 - **[YXVM](https://yxvm.com)**  
