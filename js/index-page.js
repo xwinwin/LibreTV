@@ -76,17 +76,17 @@ document.addEventListener('DOMContentLoaded', function() {
             // 更新URL为规范格式
             try {
                 if (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.name) {
-                    window.history.replaceState(
-                        { search: searchQuery },
-                        `搜索: ${searchQuery} - ${SITE_CONFIG.name}`,
-                        `/s=${encodeURIComponent(searchQuery)}`
-                    );
+                        window.history.replaceState(
+                            { search: searchQuery },
+                            `搜索: ${searchQuery} - ${SITE_CONFIG.name}`,
+                            `/index.html?s=${encodeURIComponent(searchQuery)}`
+                        );
                 } else {
-                    window.history.replaceState(
-                        { search: searchQuery },
-                        `搜索: ${searchQuery} - LibreTV`,
-                        `/s=${encodeURIComponent(searchQuery)}`
-                    );
+                        window.history.replaceState(
+                            { search: searchQuery },
+                            `搜索: ${searchQuery} - LibreTV`,
+                            `/index.html?s=${encodeURIComponent(searchQuery)}`
+                        );
                 }
             } catch (e) {
                 console.error('更新浏览器历史失败:', e);

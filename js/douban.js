@@ -179,7 +179,7 @@ function fillAndSearch(title) {
                 window.history.pushState(
                     { search: safeTitle },
                     `搜索: ${safeTitle} - ${SITE_CONFIG.name}`,
-                    `/s=${encodedQuery}`
+                    `/index.html?s=${encodedQuery}`
                 );
                 // 更新页面标题
                 document.title = `搜索: ${safeTitle} - ${SITE_CONFIG.name}`;
@@ -187,7 +187,7 @@ function fillAndSearch(title) {
                 window.history.pushState(
                     { search: safeTitle },
                     `搜索: ${safeTitle} - LibreTV`,
-                    `/s=${encodedQuery}`
+                    `/index.html?s=${encodedQuery}`
                 );
                 // 更新页面标题
                 document.title = `搜索: ${safeTitle} - LibreTV`;
@@ -249,7 +249,7 @@ async function fillAndSearchWithDouban(title) {
                 window.history.pushState(
                     { search: safeTitle },
                     `搜索: ${safeTitle} - ${SITE_CONFIG.name}`,
-                    `/s=${encodedQuery}`
+                    `/index.html?s=${encodedQuery}`
                 );
                 // 更新页面标题
                 document.title = `搜索: ${safeTitle} - ${SITE_CONFIG.name}`;
@@ -257,7 +257,7 @@ async function fillAndSearchWithDouban(title) {
                 window.history.pushState(
                     { search: safeTitle },
                     `搜索: ${safeTitle} - LibreTV`,
-                    `/s=${encodedQuery}`
+                    `/index.html?s=${encodedQuery}`
                 );
                 // 更新页面标题
                 document.title = `搜索: ${safeTitle} - LibreTV`;

@@ -772,7 +772,7 @@ async function search() {
                 window.history.pushState(
                     { search: query },
                     `搜索: ${query} - ${SITE_CONFIG.name}`,
-                    `/s=${encodedQuery}`
+                    `/index.html?s=${encodedQuery}`
                 );
                 // 更新页面标题
                 document.title = `搜索: ${query} - ${SITE_CONFIG.name}`;
@@ -782,7 +782,7 @@ async function search() {
                 window.history.pushState(
                     { search: query },
                     `搜索: ${query} - LibreTV`,
-                    `/s=${encodedQuery}`
+                    `/index.html?s=${encodedQuery}`
                 );
                 // 更新页面标题
                 document.title = `搜索: ${query} - LibreTV`;

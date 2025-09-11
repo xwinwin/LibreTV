@@ -57,7 +57,17 @@ document.addEventListener('DOMContentLoaded', function() {
         returnUrl = decodeURIComponent(backUrl);
     } else if (referrer && (referrer.includes('/s=') || referrer.includes('?s='))) {
         // 来源是搜索页面
+        // 将旧格式 /s= 转换为新格式 /index.html?s=
         returnUrl = referrer;
+        if (referrer.includes('/s=') && !referrer.includes('?s=')) {
+            const match = referrer.match(/\/s=([^?#]*)(.*)?$/);
+            if (match) {
+                const query = match[1];
+                const fragment = match[2] || '';
+                const baseUrl = referrer.substring(0, referrer.indexOf('/s='));
+                returnUrl = `${baseUrl}/index.html?s=${query}${fragment}`;
+            }
+        }
     } else if (referrer && referrer.trim() !== '') {
         // 如果有referrer但不是搜索页，也使用它
         returnUrl = referrer;
@@ -77,7 +87,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // 标记来自搜索页面
     if (returnUrl.includes('/s=') || returnUrl.includes('?s=')) {
         localStorage.setItem('cameFromSearch', 'true');
-        localStorage.setItem('searchPageUrl', returnUrl);
+        // 确保存储的是新格式的URL
+        let searchPageUrl = returnUrl;
+        if (returnUrl.includes('/s=') && !returnUrl.includes('?s=')) {
+            const match = returnUrl.match(/\/s=([^?#]*)(.*)?$/);
+            if (match) {
+                const query = match[1];
+                const fragment = match[2] || '';
+                const baseUrl = returnUrl.substring(0, returnUrl.indexOf('/s='));
+                searchPageUrl = `${baseUrl}/index.html?s=${query}${fragment}`;
+            }
+        }
+        localStorage.setItem('searchPageUrl', searchPageUrl);
     }
     
     // 获取最终的URL字符串

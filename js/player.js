@@ -29,7 +29,19 @@ function goBack(event) {
     // 检查 referrer 是否包含搜索参数
     if (referrer && (referrer.includes('/s=') || referrer.includes('?s='))) {
         // 如果是从搜索页面来的，返回到搜索页面
-        window.location.href = referrer;
+        // 但需要将旧格式 /s= 转换为新格式 /index.html?s=
+        let returnUrl = referrer;
+        if (referrer.includes('/s=') && !referrer.includes('?s=')) {
+            // 将 /s=query 转换为 /index.html?s=query
+            const match = referrer.match(/\/s=([^?#]*)(.*)?$/);
+            if (match) {
+                const query = match[1];
+                const fragment = match[2] || '';
+                const baseUrl = referrer.substring(0, referrer.indexOf('/s='));
+                returnUrl = `${baseUrl}/index.html?s=${query}${fragment}`;
+            }
+        }
+        window.location.href = returnUrl;
         return;
     }
     
