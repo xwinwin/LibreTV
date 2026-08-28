@@ -51,24 +51,38 @@ async function checkForUpdates() {
         }
         const FETCH_TIMEOUT = 1500;
         
-        try {
-            // 尝试使用代理URL获取最新版本
-            const proxyPromise = fetchVersion(VERSION_URL.PROXY, '代理请求失败');
+        // 带超时竞争的请求辅助函数
+        async function fetchWithTimeout(url, errorMessage) {
+            const fetchPromise = fetchVersion(url, errorMessage, { cache: 'no-store' });
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('代理请求超时')), FETCH_TIMEOUT)
+                setTimeout(() => reject(new Error('请求超时')), FETCH_TIMEOUT)
             );
-            
-            latestVersion = await Promise.race([proxyPromise, timeoutPromise]);
+            return await Promise.race([fetchPromise, timeoutPromise]);
+        }
+        
+        try {
+            // 1. 优先使用第三方加速代理（ghfast.top）获取最新版本
+            latestVersion = await fetchWithTimeout(VERSION_URL.PROXY, '代理请求失败');
             console.log('通过代理服务器获取版本成功');
         } catch (error) {
-            console.log('代理请求失败，尝试直接请求:', error.message);
+            console.log('代理请求失败，尝试本站 /proxy/:', error.message);
             try {
-                // 代理失败后尝试直接获取
-                latestVersion = await fetchVersion(VERSION_URL.DIRECT, '获取最新版本失败');
-                console.log('直接请求获取版本成功');
-            } catch (directError) {
-                console.error('所有版本检查请求均失败:', directError);
-                throw new Error('无法获取最新版本信息');
+                // 2. 走本站 /proxy/（带鉴权）代取：第三方镜像不可用且浏览器直连 GitHub 不畅时的可靠路径
+                const baseProxyUrl = (typeof PROXY_URL !== 'undefined' ? PROXY_URL : '/proxy/') + encodeURIComponent(VERSION_URL.DIRECT);
+                const siteProxyUrl = (window.ProxyAuth && window.ProxyAuth.addAuthToProxyUrl) ?
+                    await window.ProxyAuth.addAuthToProxyUrl(baseProxyUrl) : baseProxyUrl;
+                latestVersion = await fetchWithTimeout(siteProxyUrl, '本站代理请求失败');
+                console.log('通过本站代理获取版本成功');
+            } catch (siteError) {
+                console.log('本站代理失败，尝试直接请求:', siteError.message);
+                try {
+                    // 3. 最后回退到直连 GitHub
+                    latestVersion = await fetchVersion(VERSION_URL.DIRECT, '获取最新版本失败');
+                    console.log('直接请求获取版本成功');
+                } catch (directError) {
+                    console.error('所有版本检查请求均失败:', directError);
+                    throw new Error('无法获取最新版本信息');
+                }
             }
         }
         
