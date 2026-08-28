@@ -1,4 +1,18 @@
 // UI相关函数
+
+/**
+ * HTML 转义：用于 innerHTML 模板中的文本/属性插值，防止 API 数据注入脚本。
+ * 必须先转义 &，再转义 < > " '，避免二次转义。
+ */
+function escapeHtml(value) {
+    return String(value === null || value === undefined ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function toggleSettings(e) {
     // 强化的密码保护校验 - 防止绕过
     try {

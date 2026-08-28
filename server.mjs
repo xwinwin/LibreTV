@@ -99,19 +99,64 @@ function isValidUrl(urlString) {
     const parsed = new URL(urlString);
     const allowedProtocols = ['http:', 'https:'];
     
-    // 从环境变量获取阻止的主机名列表
-    const blockedHostnames = (process.env.BLOCKED_HOSTS || 'localhost,127.0.0.1,0.0.0.0,::1').split(',');
+    // 从环境变量获取阻止的主机名列表（内置回环/保留域名兜底）
+    const envBlockedHosts = (process.env.BLOCKED_HOSTS || '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean);
+    const blockedHostnames = ['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]', 'localtest.me', 'lvh.me', ...envBlockedHosts];
     
-    // 从环境变量获取阻止的 IP 前缀
-    const blockedPrefixes = (process.env.BLOCKED_IP_PREFIXES || '192.168.,10.,172.').split(',');
+    // 从环境变量获取阻止的 IP 前缀（保持向后兼容）
+    const blockedPrefixes = (process.env.BLOCKED_IP_PREFIXES || '').split(',').map(p => p.trim().toLowerCase()).filter(Boolean);
     
     if (!allowedProtocols.includes(parsed.protocol)) return false;
-    if (blockedHostnames.includes(parsed.hostname)) return false;
+    
+    const host = parsed.hostname.toLowerCase();
+    if (blockedHostnames.includes(host)) return false;
     
     for (const prefix of blockedPrefixes) {
-      if (parsed.hostname.startsWith(prefix)) return false;
+      if (host.startsWith(prefix)) return false;
     }
     
+    // IPv4 私有/保留网段（URL 规范化后，十进制/十六进制 IP 写法也会变成点分形式）
+    const ipv4Match = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (ipv4Match) {
+      const a = parseInt(ipv4Match[1], 10);
+      const b = parseInt(ipv4Match[2], 10);
+      if (a === 0 || a === 10 || a === 127) return false;            // 0.0.0.0/8, 10/8, 127/8
+      if (a === 192 && b === 168) return false;                      // 192.168/16
+      if (a === 172 && b >= 16 && b <= 31) return false;             // 172.16/12
+      if (a === 169 && b === 254) return false;                      // 169.254/16（云元数据）
+      if (a === 100 && b >= 64 && b <= 127) return false;            // 100.64/10（CGNAT）
+      return true;
+    }
+    
+    // IPv6
+    const v6 = host.replace(/^\[|\]$/g, '');
+    if (v6.includes(':')) {
+      if (v6 === '::' || v6 === '::1') return false;                 // 未指定/回环
+      const mapped = v6.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);      // IPv4-mapped 地址（点分形式）按 IPv4 规则校验
+      if (mapped) {
+        return isValidUrl('http://' + mapped[1] + '/');
+      }
+      const mappedHex = v6.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i); // WHATWG 会规范化为 hex 形式（如 ::ffff:7f00:1）
+      if (mappedHex) {
+        const hi = parseInt(mappedHex[1], 16);                        // 高 16 位 = IPv4 前两个八位组
+        const a = Math.floor(hi / 256);
+        const b = hi % 256;
+        if (a === 0 || a === 10 || a === 127) return false;           // 0/8, 10/8, 127/8
+        if (a === 192 && b === 168) return false;                     // 192.168/16
+        if (a === 172 && b >= 16 && b <= 31) return false;            // 172.16/12
+        if (a === 169 && b === 254) return false;                     // 169.254/16（云元数据）
+        if (a === 100 && b >= 64 && b <= 127) return false;           // 100.64/10（CGNAT）
+        return true;
+      }
+      const firstGroup = v6.split(':')[0];                           // ULA fc00::/7
+      if (/^[0-9a-f]{1,4}$/.test(firstGroup)) {
+        const n = parseInt(firstGroup, 16);
+        if (n >= 0xfc00 && n <= 0xfdff) return false;
+      }
+      return true;
+    }
+    
+    // 普通域名放行（重定向会再次校验）
     return true;
   } catch {
     return false;
@@ -174,30 +219,48 @@ app.get('/proxy/:encodedUrl', async (req, res) => {
 
     // 添加请求超时和重试逻辑
     const maxRetries = config.maxRetries;
+    const MAX_REDIRECTS = 5;
     let retries = 0;
     
-    const makeRequest = async () => {
+    const makeRequest = async (requestUrl, redirectCount) => {
       try {
         return await axios({
           method: 'get',
-          url: targetUrl,
+          url: requestUrl,
           responseType: 'stream',
           timeout: config.timeout,
+          maxRedirects: 0, // 手动跟随重定向，每跳重新做 SSRF 校验
           headers: {
             'User-Agent': config.userAgent
           }
         });
       } catch (error) {
+        // 重定向响应：校验目标地址后继续请求
+        if (error.response && [301, 302, 303, 307, 308].includes(error.response.status)) {
+          const location = error.response.headers['location'];
+          if (!location) throw error;
+          const nextUrl = new URL(location, requestUrl).toString();
+          if (redirectCount >= MAX_REDIRECTS) {
+            throw new Error(`重定向次数超过上限 (${MAX_REDIRECTS}): ${requestUrl}`);
+          }
+          log(`跟随重定向 (${error.response.status}) -> ${nextUrl}`);
+          if (!isValidUrl(nextUrl)) {
+            const err = new Error(`重定向目标URL未通过校验: ${nextUrl}`);
+            err.status = 400;
+            throw err;
+          }
+          return makeRequest(nextUrl, redirectCount + 1);
+        }
         if (retries < maxRetries) {
           retries++;
-          log(`重试请求 (${retries}/${maxRetries}): ${targetUrl}`);
-          return makeRequest();
+          log(`重试请求 (${retries}/${maxRetries}): ${requestUrl}`);
+          return makeRequest(requestUrl, redirectCount);
         }
         throw error;
       }
     };
 
-    const response = await makeRequest();
+    const response = await makeRequest(targetUrl, 0);
 
     // 转发响应头（过滤敏感头）
     const headers = { ...response.headers };
@@ -217,7 +280,7 @@ app.get('/proxy/:encodedUrl', async (req, res) => {
       res.status(error.response.status || 500);
       error.response.data.pipe(res);
     } else {
-      res.status(500).send(`请求失败: ${error.message}`);
+      res.status(error.status || 500).send(`请求失败: ${error.message}`);
     }
   }
 });

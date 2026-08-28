@@ -23,3 +23,5 @@ coverage
 *.sln
 *.sw?
 .env
+
+AGENTS.md

@@ -247,38 +247,131 @@ export async function onRequest(context) {
     }
 
     // 获取远程内容及其类型
+    // --- SSRF 防护：校验目标 URL 是否允许代理 ---
+    // 阻止回环地址、私有网段、链路本地（云元数据）、CGNAT 等内网目标。
+    // 注意：URL 规范化后，十进制/十六进制 IP 写法（如 http://2130706433）也会变成点分形式，可被下方规则覆盖。
+    function isValidTargetUrl(rawUrl) {
+        let parsed;
+        try {
+            parsed = new URL(rawUrl);
+        } catch (e) {
+            return false;
+        }
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            return false;
+        }
+        const host = parsed.hostname.toLowerCase();
+        // 常见回环/保留域名
+        const blockedHostnames = ['localhost', '0.0.0.0', '127.0.0.1', '::1', '[::1]', 'localtest.me', 'lvh.me'];
+        if (blockedHostnames.includes(host)) {
+            return false;
+        }
+        // IPv4 私有/保留网段
+        const ipv4Match = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+        if (ipv4Match) {
+            const a = parseInt(ipv4Match[1], 10);
+            const b = parseInt(ipv4Match[2], 10);
+            if (a === 0 || a === 10 || a === 127) return false;            // 0.0.0.0/8, 10/8, 127/8
+            if (a === 192 && b === 168) return false;                      // 192.168/16
+            if (a === 172 && b >= 16 && b <= 31) return false;             // 172.16/12
+            if (a === 169 && b === 254) return false;                      // 169.254/16（云元数据）
+            if (a === 100 && b >= 64 && b <= 127) return false;            // 100.64/10（CGNAT）
+            return true;
+        }
+        // IPv6
+        const v6 = host.replace(/^\[|\]$/g, '');
+        if (v6.includes(':')) {
+            if (v6 === '::' || v6 === '::1') return false;                 // 未指定/回环
+            const mapped = v6.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);      // IPv4-mapped 地址（点分形式）按 IPv4 规则校验
+            if (mapped) {
+                return isValidTargetUrl('http://' + mapped[1] + '/');
+            }
+            const mappedHex = v6.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i); // WHATWG 会规范化为 hex 形式（如 ::ffff:7f00:1）
+            if (mappedHex) {
+                const hi = parseInt(mappedHex[1], 16);                      // 高 16 位 = IPv4 前两个八位组
+                const a = Math.floor(hi / 256);
+                const b = hi % 256;
+                if (a === 0 || a === 10 || a === 127) return false;         // 0/8, 10/8, 127/8
+                if (a === 192 && b === 168) return false;                   // 192.168/16
+                if (a === 172 && b >= 16 && b <= 31) return false;          // 172.16/12
+                if (a === 169 && b === 254) return false;                   // 169.254/16（云元数据）
+                if (a === 100 && b >= 64 && b <= 127) return false;         // 100.64/10（CGNAT）
+                return true;
+            }
+            const firstGroup = v6.split(':')[0];                           // ULA fc00::/7
+            if (/^[0-9a-f]{1,4}$/.test(firstGroup)) {
+                const n = parseInt(firstGroup, 16);
+                if (n >= 0xfc00 && n <= 0xfdff) return false;
+            }
+            return true;
+        }
+        // 普通域名放行（DNS 解析在服务器端完成，重定向会再次校验）
+        return true;
+    }
+
     async function fetchContentWithType(targetUrl) {
-        const headers = new Headers({
+        const baseHeaders = new Headers({
             'User-Agent': getRandomUserAgent(),
             'Accept': '*/*',
             // 尝试传递一些原始请求的头信息
             'Accept-Language': request.headers.get('Accept-Language') || 'zh-CN,zh;q=0.9,en;q=0.8',
-            // 尝试设置 Referer 为目标网站的域名，或者传递原始 Referer
-            'Referer': request.headers.get('Referer') || new URL(targetUrl).origin
         });
 
-        try {
-            // 直接请求目标 URL
-            logDebug(`开始直接请求: ${targetUrl}`);
-            // Cloudflare Functions 的 fetch 默认支持重定向
-            const response = await fetch(targetUrl, { headers, redirect: 'follow' });
+        const MAX_REDIRECTS = 5;
+        let currentUrl = targetUrl;
 
-            if (!response.ok) {
-                 const errorBody = await response.text().catch(() => '');
-                 logDebug(`请求失败: ${response.status} ${response.statusText} - ${targetUrl}`);
-                 throw new Error(`HTTP error ${response.status}: ${response.statusText}. URL: ${targetUrl}. Body: ${errorBody.substring(0, 150)}`);
+        for (let redirectCount = 0; ; redirectCount++) {
+            // SSRF 防护：每一跳（含重定向目标）都重新校验
+            if (!isValidTargetUrl(currentUrl)) {
+                logDebug(`目标URL未通过SSRF校验: ${currentUrl}`);
+                const err = new Error(`无效的目标URL: ${currentUrl}`);
+                err.status = 400;
+                throw err;
             }
 
-            // 读取响应内容为文本
-            const content = await response.text();
-            const contentType = response.headers.get('Content-Type') || '';
-            logDebug(`请求成功: ${targetUrl}, Content-Type: ${contentType}, 内容长度: ${content.length}`);
-            return { content, contentType, responseHeaders: response.headers }; // 同时返回原始响应头
+            const headers = new Headers(baseHeaders);
+            // 尝试设置 Referer 为目标网站的域名（同域，部分图床防盗链依赖此头），或者传递原始 Referer
+            try {
+                headers.set('Referer', request.headers.get('Referer') || new URL(currentUrl).origin);
+            } catch (e) { /* currentUrl 已通过校验，此处不会失败 */ }
 
-        } catch (error) {
-             logDebug(`请求彻底失败: ${targetUrl}: ${error.message}`);
-            // 抛出更详细的错误
-            throw new Error(`请求目标URL失败 ${targetUrl}: ${error.message}`);
+            try {
+                // 手动处理重定向：每跳都重新做 SSRF 校验，防止被 302 跳到内网地址
+                logDebug(`开始请求: ${currentUrl}`);
+                const response = await fetch(currentUrl, { headers, redirect: 'manual' });
+
+                if ([301, 302, 303, 307, 308].includes(response.status)) {
+                    const location = response.headers.get('location');
+                    if (!location) {
+                        throw new Error(`重定向响应缺少 Location 头: ${currentUrl}`);
+                    }
+                    if (redirectCount >= MAX_REDIRECTS) {
+                        throw new Error(`重定向次数超过上限 (${MAX_REDIRECTS}): ${targetUrl}`);
+                    }
+                    logDebug(`跟随重定向 (${response.status}) -> ${location}`);
+                    currentUrl = new URL(location, currentUrl).toString();
+                    continue;
+                }
+
+                if (!response.ok) {
+                     const errorBody = await response.text().catch(() => '');
+                     logDebug(`请求失败: ${response.status} ${response.statusText} - ${currentUrl}`);
+                     throw new Error(`HTTP error ${response.status}: ${response.statusText}. URL: ${currentUrl}. Body: ${errorBody.substring(0, 150)}`);
+                }
+
+                // 读取响应内容（用 ArrayBuffer 保留二进制原样，避免 .text() 的 UTF-8 编解码损坏图片等二进制数据）
+                const buffer = await response.arrayBuffer();
+                const content = new TextDecoder('utf-8').decode(buffer);
+                const contentType = response.headers.get('Content-Type') || '';
+                logDebug(`请求成功: ${currentUrl}, Content-Type: ${contentType}, 内容长度: ${buffer.byteLength}`);
+                return { buffer, content, contentType, responseHeaders: response.headers }; // 同时返回原始响应头
+
+            } catch (error) {
+                 logDebug(`请求彻底失败: ${currentUrl}: ${error.message}`);
+                const wrapped = new Error(`请求目标URL失败 ${currentUrl}: ${error.message}`, { cause: error });
+                if (error.status) wrapped.status = error.status;
+                throw wrapped;
+            }
         }
     }
 
@@ -527,7 +620,9 @@ export async function onRequest(context) {
                         return createM3u8Response(processedM3u8);
                     } else {
                         logDebug(`从缓存返回非 M3U8 内容: ${targetUrl}`);
-                        return createResponse(content, 200, new Headers(headers));
+                        // 优先使用 base64 存储的二进制原样数据，避免编解码损坏图片等二进制内容
+                        const cachedBuffer = cachedData.bodyB64 ? Buffer.from(cachedData.bodyB64, 'base64') : content;
+                        return createResponse(cachedBuffer, 200, new Headers(headers));
                     }
                 } else {
                      logDebug(`[缓存未命中] 原始内容: ${targetUrl}`);
@@ -539,14 +634,15 @@ export async function onRequest(context) {
         }
 
         // --- 实际请求 ---
-        const { content, contentType, responseHeaders } = await fetchContentWithType(targetUrl);
+        const { buffer, content, contentType, responseHeaders } = await fetchContentWithType(targetUrl);
 
         // --- 写入缓存 (KV) ---
         if (kvNamespace) {
              try {
                  const headersToCache = {};
                  responseHeaders.forEach((value, key) => { headersToCache[key.toLowerCase()] = value; });
-                 const cacheValue = { body: content, headers: JSON.stringify(headersToCache) };
+                 // bodyB64 保存二进制原样数据，供非 M3U8 内容（如图片）无损返回
+                 const cacheValue = { body: content, bodyB64: Buffer.from(buffer).toString('base64'), headers: JSON.stringify(headersToCache) };
                  // 注意 KV 写入限制
                  waitUntil(kvNamespace.put(cacheKey, JSON.stringify(cacheValue), { expirationTtl: CACHE_TTL }));
                  logDebug(`已将原始内容写入缓存: ${targetUrl}`);
@@ -563,18 +659,27 @@ export async function onRequest(context) {
             return createM3u8Response(processedM3u8);
         } else {
             logDebug(`内容不是 M3U8 (类型: ${contentType})，直接返回: ${targetUrl}`);
-            const finalHeaders = new Headers(responseHeaders);
+            const finalHeaders = new Headers();
+            responseHeaders.forEach((value, key) => {
+                const lowerKey = key.toLowerCase();
+                // 排除 content-encoding/content-length：fetch 已解压且长度可能变化
+                if (lowerKey !== 'content-encoding' && lowerKey !== 'content-length') {
+                    finalHeaders.set(key, value);
+                }
+            });
             finalHeaders.set('Cache-Control', `public, max-age=${CACHE_TTL}`);
             // 添加 CORS 头，确保非 M3U8 内容也能跨域访问（例如图片、字幕文件等）
             finalHeaders.set("Access-Control-Allow-Origin", "*");
             finalHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
             finalHeaders.set("Access-Control-Allow-Headers", "*");
-            return createResponse(content, 200, finalHeaders);
+            // 以二进制原样返回，避免字符串编解码损坏图片等数据
+            return createResponse(Buffer.from(buffer), 200, finalHeaders);
         }
 
     } catch (error) {
         logDebug(`处理代理请求时发生严重错误: ${error.message} \n ${error.stack}`);
-        return createResponse(`代理处理错误: ${error.message}`, 500);
+        const statusCode = error.status || 500; // 使用错误对象上的状态码（如 SSRF 校验失败的 400）
+        return createResponse(`代理处理错误: ${error.message}`, statusCode);
     }
 }
 

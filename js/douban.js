@@ -539,28 +539,27 @@ function renderDoubanCards(data, container) {
             card.className = "bg-[#111] hover:bg-[#222] transition-all duration-300 rounded-lg overflow-hidden flex flex-col transform hover:scale-105 shadow-md hover:shadow-lg";
             
             // 生成卡片内容，确保安全显示（防止XSS）
-            const safeTitle = item.title
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
+            const safeTitle = escapeHtml(item.title);
             
-            const safeRate = (item.rate || "暂无")
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
+            const safeRate = escapeHtml(item.rate || "暂无");
             
             // 处理图片URL
             // 1. 直接使用豆瓣图片URL (添加no-referrer属性)
             const originalCoverUrl = item.cover;
+            const hasCover = originalCoverUrl && originalCoverUrl !== 'unknown' && /^https?:\/\//i.test(originalCoverUrl);
             
-            // 2. 也准备代理URL作为备选
-            const proxiedCoverUrl = PROXY_URL + encodeURIComponent(originalCoverUrl);
+            // 2. 准备带鉴权的代理URL作为备选（豆瓣图床有防盗链，直连失败时走代理）
+            const proxiedCoverUrl = hasCover && window.ProxyAuth?.buildAuthedProxyUrl ?
+                window.ProxyAuth.buildAuthedProxyUrl(originalCoverUrl) :
+                (hasCover ? PROXY_URL + encodeURIComponent(originalCoverUrl) : 'image/nomedia.png');
             
             // 为不同设备优化卡片布局
             card.innerHTML = `
                 <div class="relative w-full aspect-[2/3] overflow-hidden cursor-pointer" onclick="fillAndSearchWithDouban('${safeTitle}')">
-                    <img src="${originalCoverUrl}" alt="${safeTitle}" 
-                        class="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                        onerror="this.onerror=null; this.src='${proxiedCoverUrl}'; this.classList.add('object-contain');"
+                    <img src="${hasCover ? originalCoverUrl : 'image/nomedia.png'}" alt="${safeTitle}" 
+                        data-proxied-src="${proxiedCoverUrl}"
+                        class="w-full h-full ${hasCover ? 'object-cover' : 'object-contain'} transition-transform duration-500 hover:scale-110"
+                        onerror="coverImageFallback(this)"
                         loading="lazy" referrerpolicy="no-referrer">
                     <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-60"></div>
                     <div class="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-sm">

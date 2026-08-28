@@ -17,8 +17,14 @@ export async function onRequest(context) {
     html = html.replace('window.__ENV__.PASSWORD = "{{PASSWORD}}";', 
       `window.__ENV__.PASSWORD = "${passwordHash}";`);
     
+    // 注意：body 已经过 response.text() 解码，不能再保留原始 content-encoding/content-length，
+    // 否则浏览器会对已解压的 body 再次解压导致内容损坏
+    const finalHeaders = new Headers(response.headers);
+    finalHeaders.delete('content-encoding');
+    finalHeaders.delete('content-length');
+
     return new Response(html, {
-      headers: response.headers,
+      headers: finalHeaders,
       status: response.status,
       statusText: response.statusText,
     });
